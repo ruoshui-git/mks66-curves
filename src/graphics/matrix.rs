@@ -1,4 +1,10 @@
+#![allow(dead_code)]
+
+use super::parametrics::Parametric;
+use super::utils;
+use std::f64::consts;
 use std::fmt;
+
 
 #[derive(Clone, Debug)]
 /// Row major rectangular matrix
@@ -17,7 +23,6 @@ impl Matrix {
         // col * self.nrows + row
     }
 
-    #[allow(dead_code)]
     pub fn new_clone_vec(nrows: usize, ncols: usize, data: &Vec<f64>) -> Matrix {
         assert_eq!(
             nrows * ncols,
@@ -32,7 +37,6 @@ impl Matrix {
         }
     }
 
-    #[allow(dead_code)]
     pub fn new(nrows: usize, ncols: usize, data: Vec<f64>) -> Matrix {
         assert_eq!(
             nrows * ncols,
@@ -42,7 +46,6 @@ impl Matrix {
         Matrix { nrows, ncols, data }
     }
 
-    #[allow(dead_code)]
     pub fn get(&self, row: usize, col: usize) -> Option<f64> {
         if row > self.nrows || col > self.ncols {
             None
@@ -51,7 +54,6 @@ impl Matrix {
         }
     }
 
-    #[allow(dead_code)]
     pub fn set(&mut self, row: usize, col: usize, data: f64) {
         assert!(row < self.nrows && col < self.ncols, "Index out of bound");
         let i = self.index(row, col);
@@ -59,7 +61,6 @@ impl Matrix {
     }
 }
 
-#[allow(dead_code)]
 // add edge (row)
 impl Matrix {
     pub fn append_row(&mut self, row: &mut Vec<f64>) {
@@ -72,8 +73,8 @@ impl Matrix {
         self.nrows += 1;
     }
 
-    #[allow(dead_code)]
-    pub fn append_edge(&mut self, edge: &mut Vec<f64>) {
+    /// Append an edge in the format [x0, y0, z0, x1, y1, z1]
+    pub fn append_edge(&mut self, edge: &Vec<f64>) {
         assert_eq!(6, edge.len(), "Len of edge vec should be 6");
         self.data.extend_from_slice(&edge[0..3]);
         self.data.push(1.0);
@@ -83,7 +84,6 @@ impl Matrix {
     }
 }
 
-#[allow(dead_code)]
 // row and col iter
 impl Matrix {
     /// Iterate over a certain row
@@ -105,7 +105,6 @@ impl Matrix {
     }
 }
 
-#[allow(dead_code)]
 // mul
 impl Matrix {
     /// Returns (x, y) of a matrix based on ncols and i
@@ -151,7 +150,6 @@ impl Matrix {
 
 // identity
 impl Matrix {
-    #[allow(dead_code)]
     /// Make a new identity matrix with size `size`
     pub fn ident(size: usize) -> Self {
         let mut m = Matrix::new(size, size, vec![0.0; size * size]);
@@ -161,7 +159,6 @@ impl Matrix {
         m
     }
 
-    #[allow(dead_code)]
     /// Transforms self into an identity matrix
     pub fn to_ident(&mut self) {
         let ncols = self.ncols;
@@ -178,7 +175,6 @@ impl Matrix {
     }
 }
 
-#[allow(dead_code)]
 // generate transformation matrices
 impl Matrix {
     /// Generate a translate matrix with (dx, dy, dz)
@@ -295,34 +291,60 @@ impl fmt::Display for Matrix {
     }
 }
 
-#[allow(dead_code)]
 // draw parametric
 impl Matrix {
-    pub fn add_parametric<F>(&mut self, eq: F)
+    /// Add a parametric curve
+    /// # Arguments
+    /// `x` - Function that takes in `t` from 0 to 1 and produces x
+    /// `y` - Function that takes in `t` from 0 to 1 and produces y
+    /// `z` - The z value that the curve will be on
+    /// `step` - Controls the precision of the curves
+    pub fn add_parametric<F1, F2>(&mut self, xf: F1, yf: F2, z: f64, step: f64)
     where
-        F: Fn(f64) -> (f64, f64),
+        F1: Fn(f64) -> f64,
+        F2: Fn(f64) -> f64,
     {
-        eq(5.5);
-        panic!("unimplemented");
+        let p = Parametric::new(xf, yf);
+        for points in p.points_iter(step).collect::<Vec<(f64, f64)>>().windows(2) {
+            let (x0, y0) = points[0];
+            let (x1, y1) = points[1];
+            self.append_edge(&vec![x0, y0, z, x1, y1, z]);
+        }
     }
 
-    pub fn add_circle(&mut self, c: (f64, f64), r: f64) {
-        panic!("unimplemented");
+    /// Add a circle with center c `(x, y, z)` and radius `r`
+    pub fn add_circle(&mut self, c: (f64, f64, f64), r: f64) {
+        let (x, y, z) = c;
+        self.add_parametric(
+            |t: f64| r * (t * 2.0 * consts::PI).cos() + x,
+            |t: f64| r * (t * 2.0 * consts::PI).sin() + y,
+            z,
+            0.001,
+        );
     }
 
-    pub fn add_bezier3(
-        &mut self,
-        p0: (f64, f64),
-        p1: (f64, f64),
-        p2: (f64, f64),
-        p3: (f64, f64),
-        p4: (f64, f64),
-    ) {
-        panic!("unimplemented");
+
+    /// Add a cubic Bezier curve
+    /// # Arguments
+    /// `p[0-3]` - control points
+    pub fn add_bezier3(&mut self, p0: (f64, f64), p1: (f64, f64), p2: (f64, f64), p3: (f64, f64)) {
+
+        let (ax, bx, cx, dx) = utils::compute_bezier3_coef(p0.0, p1.0, p2.0, p3.0);
+        let (ay, by, cy, dy) = utils::compute_bezier3_coef(p0.1, p1.1, p2.1, p3.1);
+        self.add_parametric(
+            |t: f64| ax * t*t*t + bx * t * t + cx * t + dx, 
+            |t: f64| ay * t*t*t + by * t * t + cy * t + dy, 
+            0.0, 0.001);
     }
 
-    pub fn add_hermite(&mut self, p0: (f64, f64), p1: (f64, f64), r0: f64, r1: f64) {
-        panic!("unimplemented");
+    pub fn add_hermite3(&mut self, p0: (f64, f64), p1: (f64, f64), r0: (f64, f64), r1: (f64, f64)) {
+        
+        let (ax, bx, cx, dx) = utils::compute_hermite3_coef(p0.0, p1.0, r0.0, r1.0);
+        let (ay, by, cy, dy) = utils::compute_hermite3_coef(p0.1, p1.1, r0.1, r1.1);
+        self.add_parametric(
+            |t: f64| ax * t*t*t + bx * t * t + cx * t + dx, 
+            |t: f64| ay * t*t*t + by * t * t + cy * t + dy, 
+            0.0, 0.0001);
     }
 }
 

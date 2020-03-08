@@ -1,5 +1,8 @@
+#![allow(dead_code)]
+
 pub mod matrix;
 pub mod parser;
+pub mod parametrics;
 mod utils;
 
 use std::convert::Into;
@@ -8,7 +11,6 @@ use matrix::Matrix;
 use std::io::{self, prelude::Write};
 use utils::{create_file, polar_to_xy};
 
-#[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub struct RGB {
     pub red: u16,
@@ -30,7 +32,6 @@ pub struct PPMImg {
 }
 
 // impl constructor and exporter
-#[allow(dead_code)]
 impl PPMImg {
     /// Createa new PPMImg
     /// Default fg color is white, bg_color is lack
@@ -89,7 +90,6 @@ impl PPMImg {
     }
 }
 
-#[allow(dead_code)]
 // clear
 impl PPMImg {
     pub fn clear(&mut self) {
@@ -147,7 +147,6 @@ impl PPMImg {
 }
 
 // impl line algorithm
-#[allow(dead_code)]
 impl PPMImg {
     /// Draw a line from (x0, y0) to (x1, y1)
     /// #### impl note:
@@ -272,7 +271,6 @@ pub struct Turtle {
 }
 
 // impl turtle on Img
-#[allow(dead_code)]
 impl PPMImg {
     /// Creates a turtle for PPMImg
     /// ## Warning
@@ -290,7 +288,6 @@ impl PPMImg {
     }
 }
 
-#[allow(dead_code)]
 impl Turtle {
     pub fn forward(&mut self, steps: i32) {
         let (x0, y0) = (self.x, self.y);
@@ -331,7 +328,6 @@ impl Turtle {
     }
 }
 
-#[allow(dead_code)]
 // draw edge matrix
 impl PPMImg {
     /// Draws an edge matrix

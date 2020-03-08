@@ -1,3 +1,38 @@
+#![allow(dead_code)]
+/// Goes through the file named filename and performs all of the actions listed in that file.
+/// The file follows the following format:
+///      Every command is a single character that takes up a line
+///      Any command that requires arguments must have those arguments in the second line.
+///      The commands are as follows:
+/// 	 circle: add a circle to the edge matrix -
+/// 	         takes 4 arguments (cx, cy, cz, r)
+/// 	 hermite: add a hermite curve to the edge matrix -
+/// 	          takes 8 arguments (x0, y0, x1, y1, rx0, ry0, rx1, ry1)
+/// 	 bezier: add a bezier curve to the edge matrix -
+/// 	         takes 8 arguments (x0, y0, x1, y1, x2, y2, x3, y3)
+///          line: add a line to the edge matrix -
+///                takes 6 arguemnts (x0, y0, z0, x1, y1, z1)
+///          ident: set the transform matrix to the identity matrix -
+///          scale: create a scale matrix,
+///                 then multiply the transform matrix by the scale matrix -
+///                 takes 3 arguments (sx, sy, sz)
+///          move: create a translation matrix,
+///                then multiply the transform matrix by the translation matrix -
+///                takes 3 arguments (tx, ty, tz)
+///          rotate: create a rotation matrix,
+///                  then multiply the transform matrix by the rotation matrix -
+///                  takes 2 arguments (axis, theta) axis should be x y or z
+///          apply: apply the current transformation matrix to the edge matrix
+///          display: clear the screen, then
+///                   draw the lines of the edge matrix to the screen
+///                   display the screen
+///          save: clear the screen, then
+///                draw the lines of the edge matrix to the screen
+///                save the screen to a file -
+///                takes 1 argument (file name)
+///          quit: end parsing
+/// See the file script for an example of the file format
+///
 // :( Oh my God! This script spec is designed in a way that a parser library is generally useless!!!
 use std::fs::{self, File};
 use std::io::{self, prelude::*, BufReader};
@@ -5,7 +40,6 @@ use std::process::Command;
 
 use super::{matrix::Matrix, PPMImg};
 
-#[allow(dead_code)]
 pub struct DWScript {
     filename: String,
     edges: Matrix,
@@ -14,7 +48,6 @@ pub struct DWScript {
     tmpfile_name: String,
 }
 
-#[allow(dead_code)]
 /// Advances a line iterator and panic on error
 fn getline_or_error(
     line: &mut impl Iterator<Item = (usize, io::Result<String>)>,
@@ -34,7 +67,6 @@ fn parse_floats(line: String) -> Vec<f64> {
         .collect()
 }
 
-#[allow(dead_code)]
 impl DWScript {
     pub fn new(filename: &str) -> Self {
         DWScript {
@@ -45,14 +77,12 @@ impl DWScript {
             tmpfile_name: String::from("tmp.ppm"),
         }
     }
-    
     pub fn do_parse(&mut self) -> Matrix {
         let _f = File::open(&self.filename).expect("Error opening file");
         let f = BufReader::new(_f);
         let mut lines = f.lines().enumerate();
         while let Some((num, line)) = lines.next() {
             let line = line.expect("Error while reading file");
-            
             match line.trim() {
                 x if x.starts_with("\\") || x.starts_with("#") => {}
                 "line" => {
@@ -100,6 +130,7 @@ impl DWScript {
                         .expect("Error writing to file");
 
                     let mut display = Command::new("display")
+                        .arg("-flip")
                         .arg(self.tmpfile_name.as_str())
                         .spawn()
                         .unwrap();
@@ -113,17 +144,45 @@ impl DWScript {
                     self.img
                         .write_binary(dline.as_str())
                         .expect("Error writing to file");
+
+                    // if a .ing is wanted, then convert to .png
                     if dline.ends_with(".png") {
-                        Command::new("display")
+                        Command::new("convert")
                             .arg(dline.as_str())
                             .arg(dline.as_str())
                             .spawn()
                             .unwrap();
                     }
                 }
-                "circle" => { panic!("Unimplemented"); }
-                "hermite" => { panic!("Unimplemented"); }
-                "bezier" => { panic!("Unimplemented"); }
+                "circle" => {
+                    let (_dnum, dline) = getline_or_error(&mut lines);
+                    let values = parse_floats(dline);
+                    assert_eq!(4, values.len());
+                    self.edges
+                        .add_circle((values[0], values[1], values[2]), values[3]);
+                }
+                "hermite" => {
+                    let (_dnum, dline) = getline_or_error(&mut lines);
+                    let v = parse_floats(dline);
+                    assert_eq!(8, v.len());
+                    self.edges.add_hermite3(
+                        (v[0], v[1]),
+                        (v[2], v[3]),
+                        (v[4], v[5]),
+                        (v[6], v[7]),
+                    );
+                }
+                "bezier" => {
+                    let (_dnum, dline) = getline_or_error(&mut lines);
+                    let v = parse_floats(dline);
+                    assert_eq!(8, v.len());
+                    self.edges.add_bezier3(
+                        (v[0], v[1]),
+                        (v[2], v[3]),
+                        (v[4], v[5]),
+                        (v[6], v[7]),
+                    );
+                }
                 
                 _ => panic!("Unrecognized command on line {}: {}", num, line),
             }
