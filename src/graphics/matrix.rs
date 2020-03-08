@@ -196,6 +196,8 @@ impl Matrix {
         m
     }
 
+    
+    #[rustfmt::skip]
     pub fn rotatex(angle_deg: f64) -> Matrix {
         // let mut m = Matrix::ident(4);
         // m.set(1, 1, angle_deg.to_radians().cos());
@@ -207,27 +209,16 @@ impl Matrix {
         Matrix::new(
             4,
             4,
-            vec![
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                a.cos(),
-                -a.sin(),
-                0.0,
-                0.0,
-                a.sin(),
-                a.cos(),
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
+            vec![ 
+                1.0, 0.0, 0.0, 0.0, 
+                0.0, a.cos(), -a.sin(), 0.0, 0.0, 
+                a.sin(), a.cos(), 0.0, 
+                0.0, 0.0, 0.0, 1.0,
             ],
         )
     }
 
+    #[rustfmt::skip]
     pub fn rotatey(angle_deg: f64) -> Matrix {
         // let mut m = Matrix::ident(4);
         // m.set(0, 0, angle_deg.to_radians().cos());
@@ -239,23 +230,11 @@ impl Matrix {
         Matrix::new(
             4,
             4,
-            vec![
-                a.cos(),
-                0.0,
-                a.sin(),
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                -a.sin(),
-                0.0,
-                a.cos(),
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
+            vec![ 
+                a.cos(), 0.0, a.sin(), 0.0, 
+                0.0, 1.0, 0.0, 0.0, 
+                -a.sin(), 0.0, a.cos(), 0.0, 
+                0.0, 0.0, 0.0, 1.0,
             ],
         )
     }

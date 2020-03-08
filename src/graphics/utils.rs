@@ -43,3 +43,12 @@ pub fn compute_hermite3_coef(p0: f64, p1: f64, r0: f64, r1: f64) -> (f64, f64, f
         p0,
     )
 }
+
+/// Returns a mapper function that maps value from one range to another
+/// https://stackoverflow.com/a/5732390
+pub fn mapper(instart: f64, inend: f64, outstart: f64, outend: f64) -> impl Fn(f64) -> f64
+{
+    let slope = (outend - outstart) / (inend - instart);
+    // move values into closure so they are captured by value, not ref
+    move |x| outstart + slope * (x - instart)
+}

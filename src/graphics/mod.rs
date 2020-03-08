@@ -1,24 +1,22 @@
 #![allow(dead_code)]
 
+pub mod colors;
 pub mod matrix;
-pub mod parser;
 pub mod parametrics;
-mod utils;
+pub mod parser;
+pub mod utils;
 
 use std::convert::Into;
-
-use matrix::Matrix;
-use std::io::{self, prelude::Write};
-use utils::{create_file, polar_to_xy};
-
-#[derive(Copy, Clone)]
-pub struct RGB {
-    pub red: u16,
-    pub blue: u16,
-    pub green: u16,
-}
-
 use std::convert::TryInto;
+
+use std::io::{self, prelude::Write};
+
+// re-exports
+pub use matrix::Matrix;
+pub use colors::{RGB, HSL};
+
+// internal use
+use utils::{create_file, polar_to_xy};
 
 pub struct PPMImg {
     height: u32,
@@ -331,22 +329,18 @@ impl Turtle {
 // draw edge matrix
 impl PPMImg {
     /// Draws an edge matrix
-    /// 
+    ///
     /// Number of edges must be a multiple of 2
     pub fn render_edge_matrix(&mut self, m: &Matrix) {
-        
         let mut iter = m.iter_by_row();
-        while let Some(point) = iter.next()
-        {
+        while let Some(point) = iter.next() {
             let (x0, y0, _z0) = (point[0], point[1], point[2]);
-            let (x1, y1, _z1) = match iter.next()
-            {
+            let (x1, y1, _z1) = match iter.next() {
                 Some(p1) => (p1[0], p1[1], p1[2]),
                 None => panic!("Number of edges must be a multiple of 2"),
             };
 
             self.draw_line(x0, y0, x1, y1);
         }
-
     }
 }

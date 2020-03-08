@@ -165,25 +165,16 @@ impl DWScript {
                     let (_dnum, dline) = getline_or_error(&mut lines);
                     let v = parse_floats(dline);
                     assert_eq!(8, v.len());
-                    self.edges.add_hermite3(
-                        (v[0], v[1]),
-                        (v[2], v[3]),
-                        (v[4], v[5]),
-                        (v[6], v[7]),
-                    );
+                    self.edges
+                        .add_hermite3((v[0], v[1]), (v[2], v[3]), (v[4], v[5]), (v[6], v[7]));
                 }
                 "bezier" => {
                     let (_dnum, dline) = getline_or_error(&mut lines);
                     let v = parse_floats(dline);
                     assert_eq!(8, v.len());
-                    self.edges.add_bezier3(
-                        (v[0], v[1]),
-                        (v[2], v[3]),
-                        (v[4], v[5]),
-                        (v[6], v[7]),
-                    );
+                    self.edges
+                        .add_bezier3((v[0], v[1]), (v[2], v[3]), (v[4], v[5]), (v[6], v[7]));
                 }
-                
                 _ => panic!("Unrecognized command on line {}: {}", num, line),
             }
         }
