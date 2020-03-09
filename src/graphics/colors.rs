@@ -1,14 +1,35 @@
 use std::cmp;
 use std::convert;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct RGB {
     pub red: u16,
     pub blue: u16,
     pub green: u16,
 }
 
+// Constructor and some useful "constants"
+impl RGB
+{
+    pub fn gray(depth: u16) -> Self
+    {
+        RGB {
+            red: depth,
+            green: depth,
+            blue: depth,
+        }
+    }
+
+    pub fn new(red: u16, green: u16, blue: u16) -> Self
+    {
+        RGB {
+            red, green, blue
+        }
+    }
+}
+
 /// Hue, Saturation, Luminosity
+/// 
 /// range: [0, 1]
 #[derive(Copy, Clone)]
 pub struct HSL {

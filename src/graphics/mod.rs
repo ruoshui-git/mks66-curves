@@ -12,8 +12,8 @@ use std::convert::TryInto;
 use std::io::{self, prelude::Write};
 
 // re-exports
+pub use colors::{HSL, RGB};
 pub use matrix::Matrix;
-pub use colors::{RGB, HSL};
 
 // internal use
 use utils::{create_file, polar_to_xy};
@@ -34,22 +34,17 @@ impl PPMImg {
     /// Createa new PPMImg
     /// Default fg color is white, bg_color is lack
     pub fn new(height: u32, width: u32, depth: u16) -> PPMImg {
-        let bg_color = RGB {
-            red: 0,
-            green: 0,
-            blue: 0,
-        };
+        Self::new_with_bg(height, width, depth, RGB::gray(0))
+    }
+
+    pub fn new_with_bg(height: u32, width: u32, depth: u16, bg_color: RGB) -> PPMImg {
         PPMImg {
             height,
             width,
             depth,
             x_wrap: false,
             y_wrap: false,
-            fg_color: RGB {
-                red: depth,
-                green: depth,
-                blue: depth,
-            },
+            fg_color: RGB::gray(depth),
             bg_color,
             data: vec![bg_color; (width * height).try_into().unwrap()],
         }
@@ -101,12 +96,19 @@ impl PPMImg {
 // implement point plotting
 impl PPMImg {
     pub fn plot(&mut self, x: i32, y: i32) -> () {
+        if let Some(index) = self.index(x, y) {
+            self.data[index] = self.fg_color;
+        }
+    }
+
+    /// Returns Some(index) if index exists. Otherwise None.
+    fn index(&self, x: i32, y: i32) -> Option<usize> {
         let (width, height) = (
             self.width.try_into().unwrap(),
             self.height.try_into().unwrap(),
         );
         if (!self.x_wrap && (x < 0 || x >= width)) || (!self.y_wrap && (y < 0 || y >= height)) {
-            return ();
+            return None;
         }
 
         let x = if x >= width {
@@ -135,12 +137,7 @@ impl PPMImg {
         };
 
         // now we know that x and y are positive, we can cast without worry
-        let index = self.index(x as u32, y as u32);
-        self.data[index] = self.fg_color;
-    }
-
-    fn index(&self, x: u32, y: u32) -> usize {
-        (y * self.width as u32 + x).try_into().unwrap()
+        Some((y * self.width as i32 + x).try_into().unwrap())
     }
 }
 
@@ -341,6 +338,39 @@ impl PPMImg {
             };
 
             self.draw_line(x0, y0, x1, y1);
+        }
+    }
+}
+
+// filling (should this be in colors mod instead?)
+impl PPMImg {
+    /// Fill an area in img with color calculated by `fill`,
+    /// starting at (x, y) and ending when encounters bound color `bound`
+    pub fn bound4_fill_with_fn(
+        &mut self,
+        x: i32,
+        y: i32,
+        fill: impl Fn(f64, f64) -> RGB,
+        bound: RGB,
+    ) {
+        let mut points = vec![(x, y)];
+        while let Some((x, y)) = points.pop() {
+            if let Some(index) = self.index(x, y) {
+                let color = self.data[index];
+                if color == bound {
+                    continue;
+                }
+                let fcolor = fill(x as f64, y as f64);
+                if color == fcolor {
+                    continue;
+                }
+                self.data[index] = fcolor;
+                points.push((x + 1, y));
+                points.push((x, y + 1));
+                points.push((x - 1, y));
+                points.push((x, y - 1));
+            }
+            assert!(points.len() <= (self.width * self.height).try_into().unwrap());
         }
     }
 }
